@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Bhues">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#fdfaf7">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-512.png">
+<link rel="manifest" href="manifest.webmanifest">
+<title>Bhues Coloring Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE: playful, calm, a hobby tool that feels like a real app
+   IDEA: a crayon box beside a sheet of paper
+   PICTURE: the coloring page itself, large, at the top
+   COLOUR and TYPE: white paper, deep teal ink, coral accent; Fredoka titles, Nunito body
+   LAYOUT: page on top, tools and palette under it; side panel on wide screens */
+:root{color-scheme:light dark;--bg:light-dark(#fdfaf7,#12171c);--ink:light-dark(#173038,#e8f0f2);--soft:light-dark(#5f7379,#9db0b5);--card:light-dark(#ffffff,#1b232a);--line:light-dark(#eadfd6,#2a343c);--acc:#ff5a4e;--acc-ink:#fff;--teal:#13a39e}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Nunito,system-ui,sans-serif;overflow-x:clip}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:max(12px,env(safe-area-inset-top)) max(4vw,14px,env(safe-area-inset-right)) 12px max(4vw,14px,env(safe-area-inset-left))}
+body{padding-bottom:env(safe-area-inset-bottom)}
+.brand{font:600 30px/1 Fredoka,Nunito,sans-serif;letter-spacing:.5px;display:flex;align-items:baseline;gap:10px}
+.brand b{font-weight:600}
+.brand small{font:600 14px Nunito,sans-serif;color:var(--soft)}
+.pill{border:0;background:var(--ink);color:var(--bg);border-radius:999px;padding:10px 18px;min-height:44px;font-weight:700}
+.app{display:grid;gap:14px;padding:0 max(4vw,14px) 28px;max-width:1240px;margin:0 auto}
+@media(min-width:900px){.app{grid-template-columns:minmax(0,1fr) 360px;align-items:start}}
+.board{display:grid;justify-items:center;gap:10px}
+.stage{position:relative;overflow:hidden;background:#fff;border-radius:18px;box-shadow:0 1px 0 var(--line),0 14px 34px -18px rgba(10,30,40,.45);touch-action:none;user-select:none;-webkit-user-select:none;width:100%;aspect-ratio:1}
+.stage canvas{position:absolute;left:0;top:0;width:100%;height:100%;transform-origin:0 0;image-rendering:auto}
+.rip{position:absolute;width:56px;height:56px;margin:-28px 0 0 -28px;border-radius:50%;border:4px solid;pointer-events:none;animation:rip .45s ease-out forwards}
+@keyframes rip{from{transform:scale(.2);opacity:1}to{transform:scale(1.3);opacity:0}}
+@media(prefers-reduced-motion:reduce){.rip{display:none}}
+.tools{display:flex;align-items:center;gap:8px;width:100%;flex-wrap:wrap}
+.ib{display:inline-flex;align-items:center;gap:6px;justify-content:center;min-width:44px;min-height:44px;border:1px solid var(--line);background:var(--card);border-radius:14px;padding:0 12px;font-weight:700;font-size:14px}
+.ib svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.ib[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.ib:disabled{opacity:.4;cursor:default}
+.count{margin-left:auto;color:var(--soft);font-size:14px;white-space:nowrap}
+.hint{color:var(--soft);font-size:14px;margin:0;width:100%}
+.side{display:grid;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:16px}
+.side h2{font:600 18px Fredoka,Nunito,sans-serif;margin:0}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}
+.chip{flex:none;border:1px solid var(--line);background:transparent;border-radius:999px;padding:6px 12px;min-height:36px;font-size:14px;font-weight:700}
+.chip[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.sw{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.sw button,.recent button{aspect-ratio:1;min-height:44px;border-radius:50%;border:2px solid rgba(0,0,0,.08);box-shadow:inset 0 -6px 0 rgba(0,0,0,.08)}
+.sw button[aria-pressed=true],.recent button[aria-pressed=true]{outline:3px solid var(--ink);outline-offset:3px}
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.custom{display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:14px;border:1px solid var(--line);border-radius:14px;padding:4px 12px 4px 4px;min-height:44px}
+.custom input{width:36px;height:36px;border:0;padding:0;background:none;border-radius:10px}
+.recent{display:flex;gap:6px;flex-wrap:wrap}
+.recent button{width:34px;min-height:34px}
+.lbl{font-size:13px;color:var(--soft);font-weight:700;margin:0}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn{min-height:48px;border-radius:14px;border:1px solid var(--line);background:var(--card);font-weight:700}
+.pri{background:var(--acc);color:var(--acc-ink);border-color:var(--acc)}
+.note{margin:0;color:var(--soft);font-size:14px;min-height:1em}
+.sheet{position:fixed;inset:0;background:rgba(8,20,26,.55);display:grid;place-items:center;padding:14px;z-index:10}
+.sheet[hidden]{display:none}
+.card{background:var(--card);color:var(--ink);border-radius:22px;width:min(560px,100%);max-height:92vh;overflow:auto;padding:18px;display:grid;gap:14px}
+.card h3{font:600 22px Fredoka,Nunito,sans-serif;margin:0;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.x{border:0;background:transparent;font-size:28px;line-height:1;min-width:44px;min-height:44px}
+.thumbs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.thumbs button{border:1px solid var(--line);background:#fff;border-radius:14px;padding:6px;display:grid;gap:4px;color:#173038;font-size:13px;font-weight:700}
+.thumbs img{width:100%;aspect-ratio:1;display:block}
+.file{display:flex;align-items:center;justify-content:center;min-height:48px;border-radius:14px;border:2px dashed var(--line);font-weight:700;cursor:pointer;text-align:center;padding:8px}
+.file input{position:absolute;opacity:0;width:1px;height:1px}
+.range{display:grid;gap:4px}
+.range input{width:100%;accent-color:var(--acc)}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.field{min-height:44px;border:1px solid var(--line);border-radius:12px;padding:8px 12px;background:transparent;font-size:16px;width:100%}
+.bar{height:10px;border-radius:99px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--acc);transition:width .2s}
+video,.pv{width:100%;max-height:52vh;border-radius:14px;background:#000;object-fit:contain}
+.pv{background:#fff}
+#ov{pointer-events:none}
+[hidden]{display:none!important}
+.nsw{display:grid;grid-template-columns:repeat(auto-fill,minmax(52px,1fr));gap:8px}
+.nsw button{aspect-ratio:1;min-height:48px;border-radius:50%;border:2px solid rgba(0,0,0,.08);box-shadow:inset 0 -6px 0 rgba(0,0,0,.1);font:700 18px Nunito,sans-serif;position:relative}
+.nsw button[aria-pressed=true]{outline:3px solid var(--ink);outline-offset:3px}
+.nsw button small{position:absolute;right:-4px;bottom:-4px;background:var(--card);color:var(--soft);border:1px solid var(--line);border-radius:99px;font-size:11px;padding:0 5px;line-height:16px}
+.prog{display:grid;gap:6px}
+.prog p{margin:0;font-weight:700}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand" aria-label="bhues"><span><b style="color:#ff5a4e">b</b><b style="color:#f7a400">h</b><b style="color:#13a39e">u</b><b style="color:#3a6ff0">e</b><b style="color:#e0447c">s</b></span><small>coloring studio</small></div>
+  <button class="pill" id="newBtn">New page</button>
+</header>
+<main class="app">
+  <section class="board" id="board">
+    <div class="stage" id="stage"><canvas id="cv" width="10" height="10" aria-label="Coloring page. Tap a space to fill it."></canvas><canvas id="ov" width="10" height="10"></canvas></div>
+    <div class="tools">
+      <button class="ib" id="undo" aria-label="Undo"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg></button>
+      <button class="ib" id="redo" aria-label="Redo"><svg viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/></svg></button>
+      <button class="ib" id="eraser" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="m7 21-4-4a2 2 0 0 1 0-3L14 3a2 2 0 0 1 3 0l4 4a2 2 0 0 1 0 3L11 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg>Eraser</button>
+      <button class="ib" id="find" hidden><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>Find</button>
+      <button class="ib" id="fit"><svg viewBox="0 0 24 24"><path d="M3 9V3h6M21 9V3h-6M3 15v6h6M21 15v6h-6"/></svg>Fit</button>
+      <span class="count" id="count">0 fills</span>
+      <p class="hint" id="hint">Tap a space to fill it. Pinch or scroll to zoom, drag to move around.</p>
+    </div>
+  </section>
+  <aside class="side">
+    <div id="numPanel" hidden style="display:grid;gap:14px">
+      <h2>Pick a number</h2>
+      <div class="prog"><p id="prog"></p><div class="bar"><i id="progBar"></i></div></div>
+      <div class="nsw" id="nsw"></div>
+    </div>
+    <div id="freePanel" style="display:grid;gap:14px">
+      <h2>Colors</h2>
+      <div class="chips" id="pals"></div>
+      <div class="sw" id="sw"></div>
+      <div class="row">
+        <label class="custom"><input type="color" id="pick" value="#ff5a4e">Custom</label>
+        <div class="recent" id="recent" aria-label="Recent colors"></div>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn" id="savePic">Save picture</button>
+      <button class="btn pri" id="vidBtn">Make timelapse</button>
+    </div>
+    <p class="note" id="msg"></p>
+  </aside>
+</main>
+
+<div class="sheet" id="newSheet" hidden>
+  <div class="card">
+    <h3>New page <button class="x" data-close aria-label="Close">×</button></h3>
+    <p class="lbl">Starter pages</p>
+    <div class="seg" id="pmode"><button class="chip" data-v="num" aria-pressed="true">Color by number</button><button class="chip" data-v="free" aria-pressed="false">Free coloring</button></div>
+    <div class="thumbs" id="thumbs"></div>
+    <label class="file">Upload line art (your own or licensed)<input type="file" accept="image/*" id="upLine"></label>
+    <label class="file">Turn a photo into line art<input type="file" accept="image/*" id="upPhoto"></label>
+    <div class="range"><label class="lbl" for="detail">Photo detail: <span id="detailV">3</span></label><input type="range" id="detail" min="1" max="5" value="3"></div>
+    <div class="range"><label class="lbl" for="th">Line detection (raise it if colors leak through faint lines)</label><input type="range" id="th" min="60" max="235" value="170"></div>
+    <button class="btn" id="clear">Clear all colors</button>
+    <p class="note" id="newMsg"></p>
+  </div>
+</div>
+
+<div class="sheet" id="vidSheet" hidden>
+  <div class="card">
+    <h3>Make a timelapse <button class="x" data-close aria-label="Close">×</button></h3>
+    <p class="lbl">Shape</p>
+    <div class="seg" id="shape"><button class="chip" data-v="v" aria-pressed="true">Vertical 9:16</button><button class="chip" data-v="s" aria-pressed="false">Square</button></div>
+    <p class="lbl">Speed</p>
+    <div class="seg" id="speed"><button class="chip" data-v="7000" aria-pressed="false">Quick</button><button class="chip" data-v="13000" aria-pressed="true">Normal</button><button class="chip" data-v="22000" aria-pressed="false">Slow</button></div>
+    <div class="row"><label class="lbl" for="handle" style="flex:1 1 160px">Your handle on the video<input class="field" id="handle" value="@bhues" maxlength="30"></label><label class="lbl">Background<br><input type="color" id="vbg" value="#fff1e8" style="width:52px;height:44px;border:0;background:none"></label></div>
+    <button class="btn pri" id="rec">Record timelapse</button>
+    <div class="bar" id="bar" hidden><i></i></div>
+    <video id="vid" controls playsinline hidden></video>
+    <button class="btn" id="saveVid" hidden>Save or share video</button>
+    <p class="note" id="vidMsg"></p>
+  </div>
+</div>
+
+<div class="sheet" id="picSheet" hidden>
+  <div class="card">
+    <h3>Your picture <button class="x" data-close aria-label="Close">×</button></h3>
+    <img class="pv" id="pv" alt="Your colored picture">
+    <p class="note">Press and hold the picture to save it to your phone.</p>
+  </div>
+</div>
+
+<script>
+{
+const $=id=>document.getElementById(id);
+const cv=$('cv'),cx=cv.getContext('2d',{willReadFrequently:true}),stage=$('stage'),board=$('board');
+const WHITE=0xffffff;
+let W=0,H=0,lum=null,lab=null,nReg=0,rs=null,rp=null,rc=null,img=null,artURL='',ops=[],redoS=[],th=170;
+let cur=0xff5a4e,erase=false,recent=[],lastPhoto=null;
+const ov=$('ov'),ox=ov.getContext('2d');
+let numMode=false,numPal=[],refPix=null,tgt=null,auto=null,pole=null,poleD=null,base=null,ovImg=null,sel=0,page=-1,pageMode='num',findK=0;
+const hex=n=>'#'+n.toString(16).padStart(6,'0');
+const msg=t=>{$('msg').textContent=t||''};
+const seg=(id,set)=>$(id).addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(!b)return;$(id).querySelectorAll('[data-v]').forEach(x=>x.setAttribute('aria-pressed',x===b));set(b.dataset.v)});
+
+/* save: the phone's share sheet when it can take files (Save to Photos, TikTok, Instagram), otherwise a normal download */
+async function saveFile(blob,name){
+  const type=blob.type||(name.endsWith('.png')?'image/png':name.endsWith('.mp4')?'video/mp4':'video/webm');
+  try{const f=new File([blob],name,{type});
+    if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f]});return 'shared'}}
+  catch(err){if(err&&err.name==='AbortError')return 'cancelled'}
+  const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000);return 'downloaded';
+}
+
+/* starter pages, original drawings */
+const svgWrap=b=>`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="1200" height="1200"><rect width="1000" height="1000" fill="#fff"/><g fill="none" stroke="#111" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">${b}</g></svg>`;
+/* each page is drawn once with fills; the line version strips the fills, the color key keeps them */
+const enc=s=>'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(s);
+function mk(name,b,pal){
+  const line=svgWrap(b.replace(/<[^>]*data-ref="1"[^>]*\/>/g,'').replace(/\sfill="[^"]*"/g,''));
+  const ref=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="1200" height="1200"><rect width="1000" height="1000" fill="${pal[0]}"/><g fill="none" stroke="none">${b}</g></svg>`;
+  return {name,line:enc(line),ref:enc(ref),pal};
+}
+function mandala(){
+  const C=['#1d3557','#f4a261','#e9c46a','#2a9d8f','#e76f51','#ffe8d6','#f6bd60','#8ecae6','#ef476f','#ffd166'];
+  let b=`<circle cx="500" cy="500" r="470" fill="${C[1]}"/><circle cx="500" cy="500" r="420" fill="${C[3]}"/><circle cx="500" cy="500" r="240" fill="${C[7]}"/><circle cx="500" cy="500" r="70" fill="${C[9]}"/><circle cx="500" cy="500" r="36" fill="${C[8]}"/>`;
+  for(let i=0;i<24;i++)b+=`<ellipse cx="500" cy="55" rx="20" ry="25" fill="${C[2]}" transform="rotate(${i*15} 500 500)"/>`;
+  for(let i=0;i<8;i++)b+=`<path d="M500 464 Q515 448 500 432 Q485 448 500 464Z" fill="${C[1]}" transform="rotate(${i*45} 500 500)"/>`;
+  for(let i=0;i<12;i++)b+=`<path d="M500 430 Q568 355 500 270 Q432 355 500 430Z" fill="${C[8]}" transform="rotate(${i*30} 500 500)"/>`;
+  for(let i=0;i<16;i++)b+=`<path d="M500 260 Q574 180 500 100 Q426 180 500 260Z" fill="${C[4]}" transform="rotate(${i*22.5} 500 500)"/><path d="M500 238 Q536 180 500 128 Q464 180 500 238Z" fill="${C[5]}" transform="rotate(${i*22.5} 500 500)"/><circle cx="500" cy="165" r="20" fill="${C[6]}" transform="rotate(${i*22.5+11.25} 500 500)"/>`;
+  b+=`<path d="M0 0 L0 170 Q170 170 170 0Z" fill="${C[3]}" data-ref="1"/><path d="M1000 0 L830 0 Q830 170 1000 170Z" fill="${C[3]}" data-ref="1"/><path d="M0 1000 L0 830 Q170 830 170 1000Z" fill="${C[3]}" data-ref="1"/><path d="M1000 1000 L830 1000 Q830 830 1000 830Z" fill="${C[3]}" data-ref="1"/>`;
+  b+='<path d="M0 170 Q170 170 170 0"/><path d="M830 0 Q830 170 1000 170"/><path d="M0 830 Q170 830 170 1000"/><path d="M830 1000 Q830 830 1000 830"/>';
+  b+=`<circle cx="60" cy="60" r="34" fill="${C[2]}"/><circle cx="940" cy="60" r="34" fill="${C[2]}"/><circle cx="60" cy="940" r="34" fill="${C[2]}"/><circle cx="940" cy="940" r="34" fill="${C[2]}"/>`;
+  return mk('Mandala',b,C);
+}
+function plant(){
+  const C=['#f1e3c8','#a8dadc','#b07d50','#52b788','#2d6a4f','#bc6c25','#dd8a4f','#ffd166','#e63946','#ffb703','#6b4226'];
+  let b=`<path d="M210 945 V330 A290 290 0 0 1 790 330 V945Z" fill="${C[1]}" data-ref="1"/><path d="M0 945 H1000 V1000 H0Z" fill="${C[2]}" data-ref="1"/>`;
+  b+='<path d="M210 945 V330 A290 290 0 0 1 790 330 V945"/><path d="M0 945 H1000"/><path d="M210 520 H790"/>';
+  const leaf=(x,y,a,l,w,f)=>`<g transform="translate(${x} ${y}) rotate(${a})"><path d="M0 0 Q${w} ${-l*.5} 0 ${-l} Q${-w} ${-l*.5} 0 0Z" fill="${f}"/><path d="M0 -8 L0 ${-l*.86}"/><path d="M0 ${-l*.3} L${w*.55} ${-l*.45} M0 ${-l*.5} L${-w*.55} ${-l*.65} M0 ${-l*.62} L${w*.45} ${-l*.76}"/></g>`;
+  b+='<path d="M500 660 Q470 520 380 430"/><path d="M500 660 Q540 500 640 400"/><path d="M500 660 Q500 470 505 300"/><path d="M500 660 Q420 600 300 600"/><path d="M500 660 Q600 610 700 620"/>';
+  b+=leaf(380,430,-40,220,80,C[3])+leaf(640,400,38,220,80,C[4])+leaf(505,300,2,230,85,C[3])+leaf(300,600,-75,190,70,C[4])+leaf(700,620,78,190,70,C[3]);
+  b+=`<path d="M310 650 H690 V715 H310Z" fill="${C[5]}"/><path d="M335 715 L370 940 H630 L665 715" fill="${C[6]}"/><path d="M330 790 H670 L660 862 H340Z" fill="${C[7]}" data-ref="1"/><path d="M350 790 H650"/><path d="M358 860 H642"/>`;
+  for(let i=0;i<5;i++)b+=`<circle cx="${400+i*50}" cy="825" r="14" fill="${C[8]}"/>`;
+  b+=`<circle cx="880" cy="140" r="70" fill="${C[9]}"/>`;for(let i=0;i<10;i++)b+=`<path d="M880 45 L880 20" transform="rotate(${i*36} 880 140)"/>`;
+  b+=`<path d="M60 945 V860 Q110 820 160 860 V945" fill="${C[10]}"/><path d="M840 945 V870 H950 V945" fill="${C[5]}"/><path d="M60 300 Q100 260 150 290 Q180 250 130 230"/>`;
+  return mk('Plant on a shelf',b,C);
+}
+function tiles(){
+  const C=['#264653','#2a9d8f','#e9c46a','#f4a261','#e76f51'];
+  let b='';
+  for(let i=0;i<=5;i++)b+=`<path d="M${i*200} 0 V1000"/><path d="M0 ${i*200} H1000"/>`;
+  for(let i=0;i<=5;i++)for(let j=0;j<=5;j++)b+=`<circle cx="${i*200}" cy="${j*200}" r="100" fill="${(i+j)%2?C[1]:C[2]}"/>`;
+  for(let i=0;i<5;i++)for(let j=0;j<5;j++){const x=i*200,y=j*200;b+=`<path d="M${x+100} ${y+60} L${x+140} ${y+100} L${x+100} ${y+140} L${x+60} ${y+100}Z" fill="${C[3]}"/><circle cx="${x+100}" cy="${y+100}" r="22" fill="${C[4]}"/>`}
+  return mk('Tile pattern',b,C);
+}
+const samples=[mandala(),plant(),tiles()];
+
+function loadImg(src){return new Promise((res,rej)=>{const im=new Image();im.onload=()=>res(im);im.onerror=rej;im.src=src})}
+
+/* engine */
+function loadArt(src,o={}){
+  const sw=src.naturalWidth||src.width,sh=src.naturalHeight||src.height;
+  const k=o.exact?1:Math.min(2.5,1200/Math.max(sw,sh));
+  W=Math.max(1,Math.round(sw*k));H=Math.max(1,Math.round(sh*k));
+  const art=document.createElement('canvas');art.width=W;art.height=H;
+  const a=art.getContext('2d',{willReadFrequently:true});a.fillStyle='#fff';a.fillRect(0,0,W,H);a.drawImage(src,0,0,W,H);
+  const d=a.getImageData(0,0,W,H).data;lum=new Uint8Array(W*H);
+  for(let p=0,i=0;p<W*H;p++,i+=4)lum[p]=(d[i]*77+d[i+1]*150+d[i+2]*29)>>8;
+  page=o.page>=0?o.page:-1;
+  if(o.ref){
+    const rcv=document.createElement('canvas');rcv.width=W;rcv.height=H;
+    const g=rcv.getContext('2d',{willReadFrequently:true});g.drawImage(o.ref,0,0,W,H);
+    refPix=g.getImageData(0,0,W,H).data;numMode=true;numPal=o.pal.map(h=>parseInt(h.slice(1),16));
+  }else{refPix=null;numMode=false;numPal=[]}
+  pageMode=numMode?'num':'free';
+  artURL=page>=0?'':art.toDataURL('image/png');
+  cv.width=ov.width=W;cv.height=ov.height=H;img=cx.createImageData(W,H);ovImg=ox.createImageData(W,H);
+  if(!o.keep){ops=[];redoS=[]}
+  relabel();
+  if(numMode){sel=0;const l=leftCounts();sel=Math.max(0,l.findIndex(v=>v>0))}
+  modeUI();layout();resetView();changed();
+}
+function relabel(){
+  const N=W*H;lab=new Int32Array(N);const st=new Int32Array(N);let id=0;
+  for(let p=0;p<N;p++){
+    if(lab[p]||lum[p]<th)continue;
+    id++;let sp=0;st[sp++]=p;lab[p]=id;
+    while(sp){const q=st[--sp],x=q%W;let r;
+      if(x>0){r=q-1;if(!lab[r]&&lum[r]>=th){lab[r]=id;st[sp++]=r}}
+      if(x<W-1){r=q+1;if(!lab[r]&&lum[r]>=th){lab[r]=id;st[sp++]=r}}
+      if(q>=W){r=q-W;if(!lab[r]&&lum[r]>=th){lab[r]=id;st[sp++]=r}}
+      if(q<N-W){r=q+W;if(!lab[r]&&lum[r]>=th){lab[r]=id;st[sp++]=r}}
+    }
+  }
+  nReg=id;rs=new Int32Array(id+2);
+  for(let p=0;p<N;p++)rs[lab[p]+1]++;
+  for(let l=1;l<id+2;l++)rs[l]+=rs[l-1];
+  const c=rs.slice();rp=new Int32Array(N);
+  for(let p=0;p<N;p++)rp[c[lab[p]]++]=p;
+  base=new Uint32Array(id+1).fill(WHITE);
+  if(numMode)numberRegions();
+  rc=base.slice();
+  for(const o of ops){const r=lab[o.p];o.prev=r?rc[r]:WHITE;if(r)rc[r]=o.c}
+  for(let r=0;r<=nReg;r++)paint(r,img.data,rc);
+  cx.putImageData(img,0,0);
+}
+/* give every space its number from the page's color key, and find the roomiest spot for the label */
+function numberRegions(){
+  const N=W*H,K=numPal.length;
+  tgt=new Int8Array(nReg+1).fill(-1);auto=new Uint8Array(nReg+1);pole=new Int32Array(nReg+1);poleD=new Float32Array(nReg+1);
+  const d=new Uint16Array(N);
+  for(let p=0;p<N;p++){if(!lab[p])continue;const x=p%W,y=(p/W)|0;d[p]=(x===0||y===0||x===W-1||y===H-1)?3:60000}
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){const p=y*W+x;if(!d[p])continue;let v=d[p];
+    if(x>0&&d[p-1]+3<v)v=d[p-1]+3;
+    if(y>0){if(d[p-W]+3<v)v=d[p-W]+3;if(x>0&&d[p-W-1]+4<v)v=d[p-W-1]+4;if(x<W-1&&d[p-W+1]+4<v)v=d[p-W+1]+4}
+    d[p]=v}
+  for(let y=H-1;y>=0;y--)for(let x=W-1;x>=0;x--){const p=y*W+x;if(!d[p])continue;let v=d[p];
+    if(x<W-1&&d[p+1]+3<v)v=d[p+1]+3;
+    if(y<H-1){if(d[p+W]+3<v)v=d[p+W]+3;if(x<W-1&&d[p+W+1]+4<v)v=d[p+W+1]+4;if(x>0&&d[p+W-1]+4<v)v=d[p+W-1]+4}
+    d[p]=v}
+  const best=new Uint16Array(nReg+1);
+  for(let p=0;p<N;p++){const r=lab[p];if(r&&d[p]>best[r]){best[r]=d[p];pole[r]=p}}
+  const pr=numPal.map(c=>c>>16&255),pg=numPal.map(c=>c>>8&255),pb=numPal.map(c=>c&255),votes=new Uint32Array(K);
+  for(let r=1;r<=nReg;r++){
+    votes.fill(0);
+    for(let i=rs[r],e=rs[r+1];i<e;i++){const j=rp[i]*4,R=refPix[j],G=refPix[j+1],B=refPix[j+2];let bk=0,bd=1e9;
+      for(let k=0;k<K;k++){const a=R-pr[k],b=G-pg[k],c=B-pb[k],dd=a*a+b*b+c*c;if(dd<bd){bd=dd;bk=k}}votes[bk]++}
+    let m=0;for(let k=1;k<K;k++)if(votes[k]>votes[m])m=k;
+    tgt[r]=m;poleD[r]=best[r]/3;
+    if(poleD[r]<6){auto[r]=1;base[r]=numPal[m]}
+  }
+}
+function leftCounts(){const l=new Array(numPal.length).fill(0);for(let r=1;r<=nReg;r++)if(!auto[r]&&rc[r]!==numPal[tgt[r]])l[tgt[r]]++;return l}
+function drawNums(){
+  ox.clearRect(0,0,W,H);
+  if(!numMode)return;
+  const od=ovImg.data;od.fill(0);const want=numPal[sel];
+  for(let r=1;r<=nReg;r++){if(auto[r]||tgt[r]!==sel||rc[r]===want)continue;
+    for(let i=rs[r],e=rs[r+1];i<e;i++){const j=rp[i]*4;od[j]=70;od[j+1]=90;od[j+2]=100;od[j+3]=80}}
+  ox.putImageData(ovImg,0,0);
+  ox.textAlign='center';ox.textBaseline='middle';ox.fillStyle='rgba(55,72,80,.9)';
+  let lastF=0;
+  for(let r=1;r<=nReg;r++){if(auto[r]||rc[r]===numPal[tgt[r]])continue;
+    const f=Math.round(Math.max(9,Math.min(64,poleD[r]*1.2)));if(f!==lastF){ox.font=`700 ${f}px Nunito, system-ui, sans-serif`;lastF=f}
+    const p=pole[r];ox.fillText(String(tgt[r]+1),p%W+.5,((p/W)|0)+1)}
+}
+function paint(r,d,col){
+  const c=col[r],R=c>>16&255,G=c>>8&255,B=c&255;
+  for(let i=rs[r],e=rs[r+1];i<e;i++){const p=rp[i],L=lum[p],j=p*4;d[j]=R*L/255;d[j+1]=G*L/255;d[j+2]=B*L/255;d[j+3]=255}
+}
+function seedAt(px,py){
+  if(px<0||py<0||px>=W||py>=H)return -1;
+  if(lab[py*W+px])return py*W+px;
+  for(let rad=1;rad<=12;rad++)for(let dy=-rad;dy<=rad;dy++)for(let dx=-rad;dx<=rad;dx++){
+    if(Math.max(Math.abs(dx),Math.abs(dy))!==rad)continue;
+    const x=px+dx,y=py+dy;if(x<0||y<0||x>=W||y>=H)continue;
+    if(lab[y*W+x])return y*W+x;
+  }
+  return -1;
+}
+function fillAt(px,py){
+  const p=seedAt(px,py);if(p<0)return false;
+  const r=lab[p];let c=erase?WHITE:cur;
+  if(numMode){
+    if(auto[r])return false;
+    const want=numPal[tgt[r]];if(rc[r]===want)return false;
+    if(tgt[r]!==sel){msg(`That space is number ${tgt[r]+1}. Pick ${tgt[r]+1} to fill it.`);return 'wrong'}
+    c=want;
+  }
+  if(rc[r]===c)return false;
+  ops.push({p,c,prev:rc[r]});rc[r]=c;redoS=[];
+  paint(r,img.data,rc);cx.putImageData(img,0,0);
+  if(!erase&&!numMode)addRecent(c);
+  if(numMode)msg('');
+  changed(true);return true;
+}
+function undo(){const o=ops.pop();if(!o)return;const r=lab[o.p];if(r){rc[r]=o.prev;paint(r,img.data,rc);cx.putImageData(img,0,0)}redoS.push(o);changed()}
+function redo(){const o=redoS.pop();if(!o)return;const r=lab[o.p];if(r){o.prev=rc[r];rc[r]=o.c;paint(r,img.data,rc);cx.putImageData(img,0,0)}ops.push(o);changed()}
+
+let saveT=0;
+function changed(fromFill){
+  $('undo').disabled=!ops.length;$('redo').disabled=!redoS.length;
+  $('count').textContent=ops.length+(ops.length===1?' fill':' fills');
+  if(numMode){
+    let l=leftCounts();
+    if(fromFill&&!l[sel]){const n=l.length;for(let k=1;k<=n;k++){const i=(sel+k)%n;if(l[i]){sel=i;break}}}
+    numUI(l);drawNums();
+  }
+  clearTimeout(saveT);saveT=setTimeout(persist,600);
+}
+function inkFor(c){const n=typeof c==='string'?parseInt(c.slice(1),16):c,l=(n>>16&255)*.3+(n>>8&255)*.59+(n&255)*.11;return l>150?'#173038':'#ffffff'}
+function numUI(l){
+  let tot=0;for(let r=1;r<=nReg;r++)if(!auto[r])tot++;
+  const left=l.reduce((a,b)=>a+b,0),done=tot-left;
+  $('nsw').innerHTML=numPal.map((c,i)=>`<button data-n="${i}" style="background:${hex(c)};color:${inkFor(c)}" aria-pressed="${i===sel}" aria-label="Number ${i+1}, ${l[i]} left">${l[i]?i+1:'✓'}${l[i]?`<small>${l[i]}</small>`:''}</button>`).join('');
+  $('prog').textContent=left?`${left} of ${tot} spaces left`:'Finished! Make a timelapse to share it.';
+  $('progBar').style.width=(tot?done/tot*100:0)+'%';
+}
+function modeUI(){
+  $('numPanel').hidden=!numMode;$('freePanel').hidden=numMode;$('eraser').hidden=numMode;$('find').hidden=!numMode;
+  if(numMode)setErase(false);
+  $('hint').textContent=numMode?'Pick a number, then tap the shaded spaces. Zoom in to read small numbers, or tap Find.':'Tap a space to fill it. Pinch or scroll to zoom, drag to move around.';
+}
+addEventListener('pagehide',()=>persist());document.addEventListener('visibilitychange',()=>{if(document.hidden)persist()});
+function persist(){try{localStorage.setItem('bhues.v1',JSON.stringify({page,mode:pageMode,art:artURL,th,ops:ops.map(o=>[o.p,o.c]),recent}))}catch(e){}}
+
+/* view: zoom and pan */
+let s=1,tx=0,ty=0;
+function layout(){
+  if(!W)return;
+  const cw=board.clientWidth,maxH=innerHeight*(innerWidth>=900?.8:.62);
+  const w=Math.min(cw,maxH*W/H);stage.style.width=w+'px';stage.style.height=(w*H/W)+'px';stage.style.aspectRatio='auto';
+  clampView();apply();
+}
+function resetView(){s=1;tx=0;ty=0;apply()}
+function clampView(){const w=stage.clientWidth,h=stage.clientHeight;s=Math.min(8,Math.max(1,s));tx=Math.min(0,Math.max(w-w*s,tx));ty=Math.min(0,Math.max(h-h*s,ty))}
+function apply(){cv.style.transform=ov.style.transform=`translate(${tx}px,${ty}px) scale(${s})`}
+new ResizeObserver(layout).observe(board);
+addEventListener('resize',layout);
+
+const pts=new Map();let g1=null,g2=null;
+const local=e=>{const b=stage.getBoundingClientRect();return{x:e.clientX-b.left,y:e.clientY-b.top}};
+stage.addEventListener('pointerdown',e=>{
+  try{stage.setPointerCapture(e.pointerId)}catch(_){}
+  pts.set(e.pointerId,local(e));
+  if(pts.size===1){const p=local(e);g1={x:p.x,y:p.y,tx,ty,moved:false}}
+  else if(pts.size===2){const [a,b]=[...pts.values()];g2={d:Math.hypot(a.x-b.x,a.y-b.y)||1,mx:(a.x+b.x)/2,my:(a.y+b.y)/2,s,tx,ty};if(g1)g1.moved=true}
+});
+stage.addEventListener('pointermove',e=>{
+  if(!pts.has(e.pointerId))return;
+  pts.set(e.pointerId,local(e));
+  if(pts.size>=2&&g2){
+    const [a,b]=[...pts.values()],d=Math.hypot(a.x-b.x,a.y-b.y),mx=(a.x+b.x)/2,my=(a.y+b.y)/2;
+    const ns=Math.min(8,Math.max(1,g2.s*d/g2.d)),cxp=(g2.mx-g2.tx)/g2.s,cyp=(g2.my-g2.ty)/g2.s;
+    s=ns;tx=mx-cxp*ns;ty=my-cyp*ns;clampView();apply();
+  }else if(pts.size===1&&g1){
+    const p=pts.get(e.pointerId),dx=p.x-g1.x,dy=p.y-g1.y;
+    if(Math.hypot(dx,dy)>8)g1.moved=true;
+    if(g1.moved&&s>1){tx=g1.tx+dx;ty=g1.ty+dy;clampView();apply()}
+  }
+});
+function up(e){
+  if(!pts.has(e.pointerId))return;
+  const p=pts.get(e.pointerId);pts.delete(e.pointerId);
+  if(pts.size===0){
+    if(g1&&!g1.moved&&e.type==='pointerup')tap(p.x,p.y);
+    g1=null;g2=null;
+  }else if(pts.size===1){const q=[...pts.values()][0];g1={x:q.x,y:q.y,tx,ty,moved:true};g2=null}
+}
+stage.addEventListener('pointerup',up);stage.addEventListener('pointercancel',up);
+stage.addEventListener('wheel',e=>{e.preventDefault();const p=local(e),ns=Math.min(8,Math.max(1,s*Math.exp(-e.deltaY*.0015)));const cxp=(p.x-tx)/s,cyp=(p.y-ty)/s;s=ns;tx=p.x-cxp*s;ty=p.y-cyp*s;clampView();apply()},{passive:false});
+function tap(x,y){
+  const px=Math.floor((x-tx)/s*W/stage.clientWidth),py=Math.floor((y-ty)/s*H/stage.clientHeight);
+  const res=fillAt(px,py);if(res)ripple(x,y,res==='wrong'?0x9db0b5:(erase?0x9db0b5:(numMode?numPal[sel]:cur)));
+}
+function ripple(x,y,c){const r=document.createElement('span');r.className='rip';r.style.left=x+'px';r.style.top=y+'px';r.style.borderColor=hex(c);stage.appendChild(r);setTimeout(()=>r.remove(),500)}
+function find(){
+  if(!numMode)return;const want=numPal[sel],list=[];
+  for(let r=1;r<=nReg;r++)if(!auto[r]&&tgt[r]===sel&&rc[r]!==want)list.push(r);
+  if(!list.length){msg('Every space for this number is filled.');return}
+  const r=list[findK++%list.length],sw=stage.clientWidth,sh=stage.clientHeight,k=sw/W;
+  const f=Math.max(9,Math.min(64,poleD[r]*1.2));
+  s=Math.min(8,Math.max(1.6,22/(f*k)));const px=pole[r]%W,py=(pole[r]/W)|0;
+  tx=sw/2-px*k*s;ty=sh/2-py*k*s;clampView();apply();ripple(px*k*s+tx,py*k*s+ty,want);
+}
+$('find').addEventListener('click',find);
+$('nsw').addEventListener('click',e=>{const b=e.target.closest('[data-n]');if(!b)return;sel=+b.dataset.n;findK=0;msg('');numUI(leftCounts());drawNums()});
+
+/* palette */
+const pals={
+  'Sunset':['#ff5a4e','#ff8e53','#ffb347','#ffd166','#ef476f','#c9184a','#9d0208','#f4a261','#e76f51','#6a040f'],
+  'Ocean':['#03256c','#0077b6','#0096c7','#00b4d8','#48cae4','#90e0ef','#caf0f8','#2a9d8f','#13a39e','#264653'],
+  'Garden':['#1b4332','#2d6a4f','#40916c','#52b788','#95d5b2','#d8f3dc','#ffb703','#fb8500','#bc6c25','#6b4226'],
+  'Skin and hair':['#fde0c5','#f6c9a3','#e8b48a','#d39b6a','#c68642','#a0672f','#8d5524','#5c3a21','#3b2219','#1f1410'],
+  'Pastel':['#ffd6e0','#ffc8dd','#ffefcf','#fff5ba','#e2f0cb','#b5ead7','#bde0fe','#c7ceea','#e0bbe4','#ffdac1'],
+  'Neutrals':['#ffffff','#f2f2f2','#d9d9d9','#a6a6a6','#737373','#404040','#1a1a1a','#f5f0e6','#d6c7a1','#8a7f6a']
+};
+let pal='Sunset';
+function renderPals(){
+  $('pals').innerHTML=Object.keys(pals).map(n=>`<button class="chip" data-p="${n}" aria-pressed="${n===pal}">${n}</button>`).join('');
+  $('sw').innerHTML=pals[pal].map(c=>`<button data-c="${c}" style="background:${c}" aria-label="Color ${c}" aria-pressed="${!erase&&parseInt(c.slice(1),16)===cur}"></button>`).join('');
+  $('recent').innerHTML=recent.map(c=>`<button data-c="${hex(c)}" style="background:${hex(c)}" aria-label="Recent color ${hex(c)}" aria-pressed="${!erase&&c===cur}"></button>`).join('');
+}
+function choose(c){cur=c;setErase(false);$('pick').value=hex(c);renderPals()}
+function addRecent(c){recent=[c,...recent.filter(x=>x!==c)].slice(0,8);renderPals()}
+function setErase(v){erase=v;$('eraser').setAttribute('aria-pressed',v)}
+$('pals').addEventListener('click',e=>{const b=e.target.closest('[data-p]');if(b){pal=b.dataset.p;renderPals()}});
+$('sw').addEventListener('click',e=>{const b=e.target.closest('[data-c]');if(b)choose(parseInt(b.dataset.c.slice(1),16))});
+$('recent').addEventListener('click',e=>{const b=e.target.closest('[data-c]');if(b)choose(parseInt(b.dataset.c.slice(1),16))});
+$('pick').addEventListener('input',e=>{cur=parseInt(e.target.value.slice(1),16);setErase(false);renderPals()});
+$('eraser').addEventListener('click',()=>{setErase(!erase);renderPals()});
+$('undo').addEventListener('click',undo);$('redo').addEventListener('click',redo);
+$('fit').addEventListener('click',resetView);
+addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();e.shiftKey?redo():undo()}});
+
+/* sheets */
+const open=id=>{$(id).hidden=false},close=el=>{el.hidden=true};
+document.querySelectorAll('.sheet').forEach(sh=>sh.addEventListener('click',e=>{if(e.target===sh||e.target.closest('[data-close]'))close(sh)}));
+$('newBtn').addEventListener('click',()=>{$('th').value=th;$('newMsg').textContent='';open('newSheet')});
+let newMode='num';
+const thumbs=()=>{$('thumbs').innerHTML=samples.map((sp,i)=>`<button data-i="${i}"><img src="${newMode==='num'?sp.ref:sp.line}" alt="">${sp.name}</button>`).join('')};thumbs();
+seg('pmode',v=>{newMode=v;thumbs()});
+$('thumbs').addEventListener('click',async e=>{const b=e.target.closest('[data-i]');if(!b)return;await loadSample(+b.dataset.i,newMode,false);close($('newSheet'))});
+async function loadSample(i,mode,keep){const sp=samples[i],im=await loadImg(sp.line),ref=mode==='num'?await loadImg(sp.ref):null;loadArt(im,{keep,ref,pal:sp.pal,page:i});msg('')}
+$('upLine').addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return;try{const im=await loadImg(URL.createObjectURL(f));loadArt(im);close($('newSheet'));msg('Tip: if colors spill past a faint line, raise Line detection under New page.')}catch(_){$('newMsg').textContent='That file could not be opened as an image.'}e.target.value=''});
+$('upPhoto').addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return;$('newMsg').textContent='Tracing your photo…';try{lastPhoto=await loadImg(URL.createObjectURL(f));await new Promise(r=>setTimeout(r,30));loadArt(photoLines(lastPhoto,+$('detail').value));close($('newSheet'));msg('Change Photo detail under New page to get more or fewer shapes.')}catch(_){$('newMsg').textContent='That photo could not be opened.'}e.target.value=''});
+$('detail').addEventListener('input',e=>{$('detailV').textContent=e.target.value});
+$('detail').addEventListener('change',e=>{if(lastPhoto){loadArt(photoLines(lastPhoto,+e.target.value));$('newMsg').textContent='Photo traced again with the new detail.'}});
+$('th').addEventListener('change',e=>{th=+e.target.value;relabel();changed();$('newMsg').textContent='Line detection updated.'});
+let clearArm=0;
+$('clear').addEventListener('click',()=>{
+  if(Date.now()-clearArm>3000){clearArm=Date.now();$('clear').textContent='Tap again to clear';setTimeout(()=>{$('clear').textContent='Clear all colors'},3000);return}
+  ops=[];redoS=[];relabel();changed();$('clear').textContent='Clear all colors';clearArm=0;close($('newSheet'));
+});
+
+/* photo to line art: smooth, posterize, trace region borders (always closed shapes) */
+function photoLines(im,detail){
+  const sw=im.naturalWidth,sh=im.naturalHeight,k=Math.min(1,900/Math.max(sw,sh));
+  const w=Math.max(2,Math.round(sw*k)),h=Math.max(2,Math.round(sh*k)),N=w*h;
+  const c=document.createElement('canvas');c.width=w;c.height=h;const g=c.getContext('2d',{willReadFrequently:true});
+  g.drawImage(im,0,0,w,h);const d=g.getImageData(0,0,w,h).data;
+  let a=new Float32Array(N);for(let p=0,i=0;p<N;p++,i+=4)a[p]=d[i]*.3+d[i+1]*.59+d[i+2]*.11;
+  const rad=6-detail;for(let n=0;n<2;n++)a=blur(a,w,h,rad);
+  const hist=new Float64Array(256);for(let p=0;p<N;p++)hist[Math.min(255,a[p]|0)]++;
+  for(let v=1;v<256;v++)hist[v]+=hist[v-1];
+  const L=2+detail;let q=new Uint8Array(N);for(let p=0;p<N;p++)q[p]=Math.min(L-1,Math.floor((hist[Math.min(255,a[p]|0)]/N+a[p]/255)/2*L));
+  for(let n=0;n<2;n++)q=modeF(q,w,h,L);
+  const o=g.createImageData(w,h),od=o.data;od.fill(255);
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){const p=y*w+x;
+    if((x<w-1&&q[p]!==q[p+1])||(y<h-1&&q[p]!==q[p+w])){for(const t of [p,p+1,p+w])if(t<N){const j=t*4;od[j]=od[j+1]=od[j+2]=20}}}
+  g.putImageData(o,0,0);return c;
+}
+function blur(a,w,h,r){
+  const t=new Float32Array(w*h),o=new Float32Array(w*h),n=2*r+1;
+  for(let y=0;y<h;y++){let s=0;const row=y*w;for(let x=-r;x<=r;x++)s+=a[row+Math.min(w-1,Math.max(0,x))];
+    for(let x=0;x<w;x++){t[row+x]=s/n;s+=a[row+Math.min(w-1,x+r+1)]-a[row+Math.max(0,x-r)]}}
+  for(let x=0;x<w;x++){let s=0;for(let y=-r;y<=r;y++)s+=t[Math.min(h-1,Math.max(0,y))*w+x];
+    for(let y=0;y<h;y++){o[y*w+x]=s/n;s+=t[Math.min(h-1,y+r+1)*w+x]-t[Math.max(0,y-r)*w+x]}}
+  return o;
+}
+function modeF(q,w,h,L){
+  const o=new Uint8Array(q.length),cnt=new Uint8Array(L);
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){cnt.fill(0);
+    for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const yy=Math.min(h-1,Math.max(0,y+dy)),xx=Math.min(w-1,Math.max(0,x+dx));cnt[q[yy*w+xx]]++}
+    let best=q[y*w+x];for(let v=0;v<L;v++)if(cnt[v]>cnt[best])best=v;o[y*w+x]=best}
+  return o;
+}
+
+/* save picture */
+$('savePic').addEventListener('click',async()=>{
+  const blob=await new Promise(r=>cv.toBlob(r,'image/png'));
+  try{const r=await saveFile(blob,'bhues_picture.png');if(r==='downloaded')msg('Picture saved to your downloads.')}catch(_){$('pv').src=cv.toDataURL('image/png');open('picSheet')}
+});
+
+/* timelapse */
+let shape='v',speed=13000,vblob=null,vext='mp4';
+seg('shape',v=>shape=v);seg('speed',v=>speed=+v);
+$('vidBtn').addEventListener('click',()=>{$('vidMsg').textContent=ops.length?'':'Color a few spaces first, then make your timelapse.';open('vidSheet')});
+function pickMime(){if(!window.MediaRecorder)return null;for(const m of['video/mp4;codecs=avc1.42E01E','video/mp4;codecs=avc1','video/mp4','video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'])try{if(MediaRecorder.isTypeSupported(m))return m}catch(_){}return ''}
+let busy=false;
+$('rec').addEventListener('click',async()=>{
+  if(busy)return;
+  if(!ops.length){$('vidMsg').textContent='Color a few spaces first, then make your timelapse.';return}
+  const mime=pickMime();const vc=document.createElement('canvas');
+  if(mime===null||!vc.captureStream){$('vidMsg').textContent="This browser can't record video. Try the latest Safari or Chrome.";return}
+  busy=true;$('rec').disabled=true;$('saveVid').hidden=true;$('vid').hidden=true;$('bar').hidden=false;$('vidMsg').textContent='Recording… keep this screen open.';
+  try{
+    const VW=1080,VH=shape==='v'?1920:1080;vc.width=VW;vc.height=VH;const g=vc.getContext('2d');
+    const st=document.createElement('canvas');st.width=W;st.height=H;const sg=st.getContext('2d');
+    const sd=sg.createImageData(W,H),col=base.slice();
+    for(let r=0;r<=nReg;r++)paint(r,sd.data,col);sg.putImageData(sd,0,0);
+    const pad=80,maxW=VW-pad*2,maxH=shape==='v'?VH-560:VH-pad*2-90;let aw=maxW,ah=aw*H/W;if(ah>maxH){ah=maxH;aw=ah*W/H}
+    const ax=(VW-aw)/2,ay=shape==='v'?(VH-ah)/2-40:pad;
+    const bg=$('vbg').value,handle=$('handle').value.trim(),ink=inkFor(bg);
+    try{await document.fonts.load('600 56px Fredoka')}catch(_){}
+    const compose=()=>{g.fillStyle=bg;g.fillRect(0,0,VW,VH);g.save();g.shadowColor='rgba(0,0,0,.2)';g.shadowBlur=44;g.shadowOffsetY=14;g.fillStyle='#fff';g.beginPath();if(g.roundRect)g.roundRect(ax-20,ay-20,aw+40,ah+40,30);else g.rect(ax-20,ay-20,aw+40,ah+40);g.fill();g.restore();g.drawImage(st,ax,ay,aw,ah);
+      if(handle){g.fillStyle=ink;g.font='600 56px Fredoka, Nunito, sans-serif';g.textAlign='center';g.fillText(handle,VW/2,shape==='v'?VH-210:VH-36)}};
+    compose();
+    const stream=vc.captureStream(30),rec=new MediaRecorder(stream,mime?{mimeType:mime,videoBitsPerSecond:8e6}:{});
+    const chunks=[];rec.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};const done=new Promise(r=>rec.onstop=r);
+    rec.start(500);
+    const list=ops.slice(),N=list.length,step=Math.max(25,Math.min(450,speed/N)),intro=900,outro=2200,total=intro+N*step+outro,t0=performance.now();let k=0;
+    await new Promise(res=>{const tick=()=>{const t=performance.now()-t0;let ch=false;
+      while(k<N&&t>=intro+k*step){const o=list[k++],r=lab[o.p];if(r){col[r]=o.c;paint(r,sd.data,col);ch=true}}
+      if(ch)sg.putImageData(sd,0,0);compose();$('bar').firstElementChild.style.width=Math.min(100,t/total*100)+'%';
+      if(t>=total)res();else setTimeout(tick,33)};tick()});
+    rec.stop();await done;stream.getTracks().forEach(t=>t.stop());
+    const type=(rec.mimeType||mime||'video/webm').split(';')[0];vext=type.includes('mp4')?'mp4':'webm';
+    vblob=new Blob(chunks,{type});
+    const v=$('vid');if(v.src)URL.revokeObjectURL(v.src);v.src=URL.createObjectURL(vblob);v.hidden=false;
+    $('saveVid').hidden=false;
+    $('vidMsg').textContent=vext==='mp4'?'Your MP4 is ready. Tap Save video to keep it or share it straight to TikTok or Instagram.':'This browser made a WebM video. If TikTok or Instagram will not take it, record again in Safari or a newer Chrome.';
+  }catch(err){$('vidMsg').textContent='Recording stopped: '+(err&&err.message||err)}
+  busy=false;$('rec').disabled=false;$('bar').hidden=true;
+});
+$('saveVid').addEventListener('click',async()=>{
+  if(!vblob)return;
+  try{const r=await saveFile(vblob,'bhues_timelapse.'+vext);if(r==='downloaded')$('vidMsg').textContent='Video saved to your downloads.'}catch(_){$('vidMsg').textContent='Could not save the video here. Press and hold the video to save it instead.'}
+});
+
+/* start */
+renderPals();
+try{document.fonts.ready.then(()=>{if(numMode)drawNums()})}catch(_){}
+(async()=>{
+  try{const sv=JSON.parse(localStorage.getItem('bhues.v1')||'null');
+    if(sv){th=sv.th||170;recent=sv.recent||[];ops=(sv.ops||[]).map(([p,c])=>({p,c,prev:WHITE}));
+      if(sv.page>=0&&samples[sv.page]){await loadSample(sv.page,sv.mode,true);renderPals();return}
+      if(sv.art){const im=await loadImg(sv.art);loadArt(im,{keep:true,exact:true});renderPals();return}}}catch(e){ops=[]}
+  ops=[];await loadSample(0,'num',false);
+})();
+}
+</script>
+</body>
+</html>
