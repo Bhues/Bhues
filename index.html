@@ -251,7 +251,7 @@ const svgWrap=b=>`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000
 /* each page is drawn once with fills; the line version strips the fills, the color key keeps them */
 const enc=s=>'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(s);
 function mk(name,b,pal){
-  const line=svgWrap(b.replace(/<[^>]*data-ref="1"[^>]*\/>/g,'').replace(/\sfill="[^"]*"/g,''));
+  const line=svgWrap(b.replace(/<[^>]*data-ref="1"[^>]*\/>/g,'').replace(/\sfill="[^"]*"/g,'').replace(/data-ko="1"/g,'fill="#fff"'));
   const ref=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="1200" height="1200"><rect width="1000" height="1000" fill="${pal[0]}"/><g fill="none" stroke="none">${b}</g></svg>`;
   return {name,line:enc(line),ref:enc(ref),pal};
 }
@@ -288,7 +288,99 @@ function tiles(){
   for(let i=0;i<5;i++)for(let j=0;j<5;j++){const x=i*200,y=j*200;b+=`<path d="M${x+100} ${y+60} L${x+140} ${y+100} L${x+100} ${y+140} L${x+60} ${y+100}Z" fill="${C[3]}"/><circle cx="${x+100}" cy="${y+100}" r="22" fill="${C[4]}"/>`}
   return mk('Tile pattern',b,C);
 }
-const samples=[mandala(),plant(),tiles()];
+/* helpers for the newer pages */
+const cloudP=(x,y,f,ko)=>`<path d="M${x-60} ${y} A30 30 0 0 1 ${x-30} ${y-32} A40 40 0 0 1 ${x+40} ${y-40} A32 32 0 0 1 ${x+80} ${y-12} A22 22 0 0 1 ${x+70} ${y+10} Z" fill="${f}"${ko?' data-ko="1"':''}/>`;
+const starP=(x,y,R,r,f)=>{let d='';for(let i=0;i<10;i++){const a=Math.PI/5*i-Math.PI/2,q=i%2?r:R;d+=(i?'L':'M')+(x+q*Math.cos(a)).toFixed(1)+' '+(y+q*Math.sin(a)).toFixed(1)}return `<path d="${d}Z" fill="${f}" data-ko="1"/>`};
+function balloons(){
+  const C=['#bde0fe','#fdfbf3','#ff5a4e','#ffd166','#06d6a0','#118ab2','#8d5524','#6a994e','#a7c957','#f4a261'];
+  const bal=(x,y,k,a,b)=>{const P=(dx,dy)=>`${(x+dx*k).toFixed(1)} ${(y+dy*k).toFixed(1)}`;
+    const env=`M${P(0,-110)} C${P(85,-110)} ${P(95,-10)} ${P(30,50)} L${P(-30,50)} C${P(-95,-10)} ${P(-85,-110)} ${P(0,-110)} Z`;
+    const g=(o,c,e)=>`M${P(0,-110)} C${P(c,-100)} ${P(c+5,-10)} ${P(e,50)} L${P(-e,50)} C${P(-c-5,-10)} ${P(-c,-100)} ${P(0,-110)} Z`;
+    return `<path d="M${P(-30,50)} L${P(-18,92)} M${P(30,50)} L${P(18,92)}"/>`
+      +`<path d="${env}" fill="${a}" data-ko="1"/><path d="${g(0,66,24)}" fill="${b}" data-ref="1"/><path d="${g(0,36,12)}" fill="${a}" data-ref="1"/>`
+      +`<path d="M${P(0,-110)} C${P(66,-100)} ${P(71,-10)} ${P(24,50)} M${P(0,-110)} C${P(-66,-100)} ${P(-71,-10)} ${P(-24,50)} M${P(0,-110)} C${P(36,-100)} ${P(41,-10)} ${P(12,50)} M${P(0,-110)} C${P(-36,-100)} ${P(-41,-10)} ${P(-12,50)}"/>`
+      +`<path d="M${P(-22,92)} H${P(22,92).split(' ')[0]} V${P(0,128).split(' ')[1]} H${P(-22,92).split(' ')[0]} Z" fill="${C[6]}" data-ko="1"/><path d="M${P(-22,110)} H${P(22,110).split(' ')[0]}"/>`;};
+  let b=`<circle cx="840" cy="150" r="70" fill="${C[3]}"/>`+cloudP(170,200,C[1],1)+cloudP(560,130,C[1],1)+cloudP(800,420,C[1],1);
+  b+=`<path d="M0 820 Q250 700 520 800 T1000 780 V1000 H0 Z" fill="${C[7]}" data-ko="1"/><path d="M0 905 Q300 830 600 905 T1000 885 V1000 H0 Z" fill="${C[8]}" data-ko="1"/>`;
+  b+=bal(300,420,1.5,C[2],C[3])+bal(700,600,1.1,C[5],C[4])+bal(560,270,1,C[9],C[3]);
+  return mk('Hot air balloons',b,C);
+}
+function butterfly(){
+  const C=['#e9f5db','#ff8fab','#fb6f92','#ffc300','#7b2cbf','#2b2d42','#80ed99','#38b000','#fdfbf3','#4cc9f0'];
+  const wing=`<path d="M515 400 C600 250 800 200 830 300 C860 400 700 470 515 450 Z" fill="${C[4]}" data-ko="1"/><path d="M548 410 C620 310 760 280 790 325 C815 385 690 435 548 432 Z" fill="${C[9]}"/><circle cx="725" cy="330" r="24" fill="${C[8]}"/><circle cx="650" cy="375" r="16" fill="${C[8]}"/>`
+    +`<path d="M515 470 C650 470 760 520 725 615 C690 700 580 645 515 525 Z" fill="${C[1]}" data-ko="1"/><circle cx="640" cy="560" r="26" fill="${C[3]}"/>`;
+  const flower=(x,y,c)=>{let f=`<path d="M${x} ${y+40} C${x+10} ${y+120} ${x-10} ${y+180} ${x} ${y+260}"/>`;for(let i=0;i<5;i++)f+=`<ellipse cx="${x}" cy="${y-42}" rx="24" ry="38" fill="${c}" data-ko="1" transform="rotate(${i*72} ${x} ${y})"/>`;return f+`<circle cx="${x}" cy="${y}" r="24" fill="${C[3]}" data-ko="1"/>`};
+  let b=`<path d="M0 860 Q250 830 500 860 T1000 850 V1000 H0 Z" fill="${C[6]}"/>`;
+  b+=flower(170,680,C[2])+flower(840,700,C[9])+flower(420,790,C[1]);
+  b+=`<path d="M160 860 C120 800 90 800 70 820 C100 840 130 850 160 860 Z" fill="${C[7]}" data-ko="1"/><path d="M850 860 C890 800 930 800 950 820 C920 840 880 850 850 860 Z" fill="${C[7]}" data-ko="1"/>`;
+  b+=`<g>${wing}</g><g transform="matrix(-1 0 0 1 1000 0)">${wing}</g>`;
+  b+=`<path d="M490 300 Q470 230 430 210 M510 300 Q530 230 570 210"/><circle cx="430" cy="210" r="12" fill="${C[3]}" data-ko="1"/><circle cx="570" cy="210" r="12" fill="${C[3]}" data-ko="1"/>`;
+  b+=`<ellipse cx="500" cy="450" rx="20" ry="125" fill="${C[5]}" data-ko="1"/><circle cx="500" cy="310" r="26" fill="${C[5]}" data-ko="1"/>`;
+  return mk('Butterfly garden',b,C);
+}
+function sailboat(){
+  const C=['#ffe5ec','#ffc2d1','#ff8fab','#ffd166','#2a9d8f','#1d4e5f','#fdf0d5','#e63946','#fdfbf3','#8ecae6'];
+  let b=`<rect x="0" y="250" width="1000" height="400" fill="${C[1]}" data-ref="1"/><rect x="0" y="450" width="1000" height="200" fill="${C[2]}" data-ref="1"/><path d="M0 250 H1000 M0 450 H1000"/>`;
+  b+=`<path d="M560 600 A150 150 0 0 1 860 600 Z" fill="${C[3]}" data-ko="1"/>`;
+  b+=`<path d="M0 600 H1000 V1000 H0 Z" fill="${C[4]}"/>`;
+  b+=`<path d="M0 720 Q125 690 250 720 T500 720 T750 720 T1000 720 V1000 H0 Z" fill="${C[5]}"/><path d="M0 830 Q125 800 250 830 T500 830 T750 830 T1000 830 V1000 H0 Z" fill="${C[4]}"/><path d="M0 930 Q125 900 250 930 T500 930 T750 930 T1000 930 V1000 H0 Z" fill="${C[5]}"/>`;
+  b+=`<ellipse cx="710" cy="648" rx="70" ry="10" fill="${C[3]}" data-ko="1"/><ellipse cx="710" cy="680" rx="45" ry="9" fill="${C[3]}" data-ko="1"/>`+cloudP(170,170,C[8],1)+cloudP(640,190,C[8],1)+cloudP(880,370,C[8],1)+cloudP(160,390,C[8],1);
+  b+=`<path d="M385 290 L250 610 L385 610 Z" fill="${C[9]}" data-ko="1"/><path d="M385 300 L540 610 L385 610 Z" fill="${C[6]}" data-ko="1"/><path d="M385 270 L432 282 L385 294 Z" fill="${C[7]}" data-ko="1"/><path d="M385 268 V612"/>`;
+  b+=`<path d="M235 610 H545 L500 668 H280 Z" fill="${C[7]}" data-ko="1"/><path d="M257 640 H523 L500 668 H280 Z" fill="${C[8]}" data-ref="1"/><path d="M257 640 H523"/>`;
+  b+=`<path d="M120 150 q20 -16 40 0 q20 -16 40 0 M260 110 q16 -12 32 0 q16 -12 32 0 M700 120 q18 -14 36 0 q18 -14 36 0"/>`;
+  return mk('Sunset sail',b,C);
+}
+function sea(){
+  const C=['#90e0ef','#caf0f8','#ffb703','#fdfbf3','#ff006e','#ffd6e0','#2a9d8f','#e9c46a','#3a86ff','#ffbe0b','#ddb892'];
+  let b=`<rect x="0" y="0" width="1000" height="220" fill="${C[1]}" data-ref="1"/><path d="M0 160 Q125 130 250 160 T500 160 T750 160 T1000 160 V1000 H0 Z" fill="${C[0]}" data-ref="1"/><path d="M0 160 Q125 130 250 160 T500 160 T750 160 T1000 160"/>`;
+  b+=`<path d="M0 860 Q250 820 500 860 T1000 850 V1000 H0 Z" fill="${C[7]}"/>`;
+  const weed=(x,h)=>`<path d="M${x} 880 C${x-34} ${880-h*.35} ${x+30} ${880-h*.65} ${x} ${880-h} C${x+28} ${880-h*.65} ${x-6} ${880-h*.35} ${x+30} 880 Z" fill="${C[6]}" data-ko="1"/>`;
+  b+=weed(90,300)+weed(140,220)+weed(860,280)+weed(905,190);
+  for(const [x,y,r] of [[260,930,16],[600,945,12],[720,925,18],[420,960,10]])b+=`<circle cx="${x}" cy="${y}" r="${r}" fill="${C[10]}" data-ko="1"/>`;
+  b+=starP(560,895,46,20,C[4]);
+  let n=0;
+  const fish=(x,y,k,fl,body,str)=>{const id='fc'+(n++),bd='M-90 0 Q-30 -62 45 -12 Q52 0 45 12 Q-30 62 -90 0 Z';
+    return `<defs><clipPath id="${id}"><path d="${bd}"/></clipPath></defs><g transform="translate(${x} ${y}) scale(${fl*k} ${k})"><path d="M38 0 L95 -40 L84 0 L95 40 Z" fill="${str}" data-ko="1"/><path d="${bd}" fill="${body}" data-ko="1"/><g clip-path="url(#${id})"><rect x="-38" y="-60" width="20" height="120" fill="${str}"/><rect x="5" y="-60" width="16" height="120" fill="${str}"/></g><path d="${bd}"/><circle cx="-55" cy="-8" r="11" fill="${C[3]}" data-ko="1"/></g>`};
+  b+=fish(330,380,1.25,1,C[2],C[3])+fish(720,280,.9,-1,C[4],C[5])+fish(640,620,1.1,-1,C[8],C[9]);
+  for(const [x,y,r] of [[190,300,14],[160,250,9],[820,200,12],[470,560,16],[440,505,10]])b+=`<circle cx="${x}" cy="${y}" r="${r}" fill="${C[3]}" data-ko="1"/>`;
+  return mk('Under the sea',b,C);
+}
+function house(){
+  const C=['#cdeffd','#fdfbf3','#ffd166','#e76f51','#f4e1c1','#8d5524','#a8dadc','#2d6a4f','#74c69d','#bc6c25','#adb5bd'];
+  let b=`<circle cx="140" cy="140" r="70" fill="${C[2]}"/>`+cloudP(470,150,C[1],1)+cloudP(800,220,C[1],1);
+  b+=`<path d="M0 760 Q500 715 1000 760 V1000 H0 Z" fill="${C[8]}"/>`;
+  b+=`<path d="M455 790 H545 L620 1000 H380 Z" fill="${C[10]}" data-ko="1"/>`;
+  for(const y of [705,755])b+=`<path d="M25 ${y} H260 V${y+20} H25 Z" fill="${C[9]}" data-ko="1"/>`;
+  for(let i=0;i<4;i++){const x=30+i*60;b+=`<path d="M${x} 810 V690 L${x+20} 666 L${x+40} 690 V810 Z" fill="${C[9]}" data-ko="1"/>`}
+  b+=`<path d="M600 300 H650 V430 H600 Z" fill="${C[3]}" data-ko="1"/>`;
+  b+=`<path d="M300 480 H700 V790 H300 Z" fill="${C[4]}" data-ko="1"/><path d="M265 490 L500 300 L735 490 Z" fill="${C[3]}" data-ko="1"/>`;
+  b+=`<path d="M455 640 H545 V790 H455 Z" fill="${C[5]}" data-ko="1"/><circle cx="530" cy="720" r="7" fill="${C[2]}"/>`;
+  for(const x of [340,580])b+=`<path d="M${x} 560 H${x+80} V640 H${x} Z" fill="${C[6]}" data-ko="1"/><path d="M${x+40} 560 V640 M${x} 600 H${x+80}"/>`;
+  b+=`<circle cx="500" cy="410" r="32" fill="${C[6]}" data-ko="1"/><path d="M500 378 V442 M468 410 H532"/>`;
+  b+=`<path d="M825 560 H865 V815 H825 Z" fill="${C[9]}" data-ko="1"/><circle cx="845" cy="500" r="115" fill="${C[7]}" data-ko="1"/>`;
+  for(const [x,y] of [[800,460],[880,520],[830,560],[890,440]])b+=`<circle cx="${x}" cy="${y}" r="15" fill="${C[3]}" data-ko="1"/>`;
+  b+=`<path d="M650 120 q14 -11 28 0 q14 -11 28 0 M300 260 q12 -10 24 0 q12 -10 24 0"/>`;
+  return mk('Little house',b,C);
+}
+function owl(){
+  const C=['#1b263b','#fdf0d5','#ffd166','#8d5524','#ddb892','#fdfbf3','#2b2118','#f4a261','#5e3c22','#52b788','#6f4518','#415a77'];
+  let b=`<circle cx="790" cy="190" r="105" fill="${C[1]}" data-ko="1"/><circle cx="755" cy="160" r="20" fill="${C[11]}"/><circle cx="820" cy="230" r="14" fill="${C[11]}"/>`;
+  for(const [x,y,R] of [[150,140,30],[320,90,20],[110,420,22],[900,450,26],[620,110,18],[230,600,16],[880,640,20]])b+=starP(x,y,R,R*.45,C[2]);
+  b+=`<path d="M370 335 L355 245 L440 310 Z M630 335 L645 245 L560 310 Z" fill="${C[3]}" data-ko="1"/>`;
+  b+=`<path d="M500 300 C640 300 680 420 670 560 C660 700 590 772 500 772 C410 772 340 700 330 560 C320 420 360 300 500 300 Z" fill="${C[3]}" data-ko="1"/>`;
+  const belly='M500 470 C580 470 612 560 602 650 C592 722 552 752 500 752 C448 752 408 722 398 650 C388 560 420 470 500 470 Z';
+  b+=`<defs><clipPath id="owlb"><path d="${belly}"/></clipPath></defs><path d="${belly}" fill="${C[4]}" data-ko="1"/><g clip-path="url(#owlb)"><path d="M370 570 Q405 600 440 570 Q470 600 500 570 Q530 600 560 570 Q595 600 630 570 M370 640 Q405 670 440 640 Q470 670 500 640 Q530 670 560 640 Q595 670 630 640 M370 710 Q405 740 440 710 Q470 740 500 710 Q530 740 560 710 Q595 740 630 710"/></g><path d="${belly}"/>`;
+  b+=`<path d="M342 470 C300 560 318 680 392 735 C382 640 384 540 342 470 Z" fill="${C[10]}" data-ko="1"/><path d="M658 470 C700 560 682 680 608 735 C618 640 616 540 658 470 Z" fill="${C[10]}" data-ko="1"/>`;
+  b+=`<ellipse cx="500" cy="415" rx="135" ry="88" fill="${C[4]}" data-ko="1"/>`;
+  for(const x of [437,563])b+=`<circle cx="${x}" cy="415" r="54" fill="${C[5]}" data-ko="1"/><circle cx="${x}" cy="420" r="26" fill="${C[6]}"/><circle cx="${x+9}" cy="410" r="8" fill="${C[5]}"/>`;
+  b+=`<path d="M482 468 H518 L500 508 Z" fill="${C[7]}" data-ko="1"/>`;
+  b+=`<path d="M0 760 C300 730 600 790 1000 740 V795 C600 845 300 785 0 815 Z" fill="${C[8]}" data-ko="1"/>`;
+  b+=`<path d="M60 790 C20 840 -10 860 -5 900 C40 880 70 840 60 790 Z M940 760 C980 800 1010 830 1005 870 C960 850 930 810 940 760 Z M180 780 C170 700 130 680 100 690 C120 730 150 760 180 780 Z" fill="${C[9]}" data-ko="1"/>`;
+  for(const cx of [455,545])for(const d of [-22,0,22])b+=`<ellipse cx="${cx+d}" cy="772" rx="9" ry="20" fill="${C[7]}" data-ko="1"/>`;
+  return mk('Night owl',b,C);
+}
+const samples=[mandala(),plant(),tiles(),balloons(),butterfly(),sailboat(),sea(),house(),owl()];
+const FREE_PAGES=3;
 
 function loadImg(src){return new Promise((res,rej)=>{const im=new Image();im.onload=()=>res(im);im.onerror=rej;im.src=src})}
 
@@ -570,7 +662,7 @@ function card(i,m){
 function renderHome(){
   $('galNum').innerHTML=samples.map((_,i)=>card(i,'num')).join('');
   const cu=readKey('bhues.custom');
-  $('galFree').innerHTML=samples.map((_,i)=>card(i,'free')).join('')
+  $('galFree').innerHTML=samples.slice(0,FREE_PAGES).map((_,i)=>card(i,'free')).join('')
     +(cu&&cu.art?`<button class="pcard" data-custom="1"><span class="pimg"><img src="${cu.thumb||cu.art}" alt=""><em>Your upload</em></span><span class="pmeta"><b>My page</b><small>${(cu.ops||[]).length} fills so far</small></span></button>`:'')
     +`<label class="tile"><svg viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v4h16v-4"/></svg>Upload line art<small>Your own or licensed art</small><input type="file" accept="image/*" id="upLine"></label>`
     +`<label class="tile"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="14" rx="3"/><circle cx="12" cy="13" r="4"/><path d="M8 6l2-3h4l2 3"/></svg>Photo to line art<small>Trace one of your photos</small><input type="file" accept="image/*" id="upPhoto"></label>`;
