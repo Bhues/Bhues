@@ -126,6 +126,17 @@ video,.pv{width:100%;max-height:52vh;border-radius:14px;background:#000;object-f
 .tile small{color:var(--soft);font-weight:600;font-size:13px}
 .tile input{position:absolute;opacity:0;width:1px;height:1px}
 .back{display:inline-flex;align-items:center;gap:6px}
+.pwrap{position:relative;display:grid}
+.del{position:absolute;right:8px;top:8px;width:36px;height:36px;border-radius:50%;border:0;background:rgba(255,255,255,.92);color:#173038;display:grid;place-items:center;box-shadow:0 2px 8px rgba(0,0,0,.18)}
+.del svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.finbar{display:grid;grid-auto-flow:column;grid-auto-columns:150px;gap:14px;overflow-x:auto;padding-bottom:8px;scrollbar-width:thin}
+.finsec{background:var(--card);border:1px solid var(--line);border-radius:24px;padding:16px}
+.finsec h2{display:flex;align-items:center;gap:8px}
+.finsec h2 span{font:700 14px Nunito,sans-serif;background:var(--teal);color:#fff;border-radius:99px;padding:2px 10px}
+.empty{color:var(--soft);font-size:15px;margin:0}
+.restore{justify-self:start;border:1px solid var(--line);background:transparent;border-radius:999px;padding:8px 14px;min-height:40px;font-weight:700;color:var(--soft)}
+.dbtns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.danger{background:#d62839;border-color:#d62839;color:#fff}
 </style>
 </head>
 <body>
@@ -151,7 +162,9 @@ video,.pv{width:100%;max-height:52vh;border-radius:14px;background:#000;object-f
   </div>
   <div id="cont"></div>
   <div class="sec"><h2>Color by number</h2><p>Each space has a number. Match it to the color and watch the picture appear.</p><div class="gallery" id="galNum"></div></div>
+  <div class="sec finsec" id="finSec" hidden><h2>Finished <span id="finCount">0</span></h2><p>Pages you completed. Open one to save the picture or make a timelapse.</p><div class="finbar" id="galFin"></div></div>
   <div class="sec"><h2>Free coloring</h2><p>Pick any colors you like, or bring your own line art.</p><div class="gallery" id="galFree"></div></div>
+  <button class="restore" id="restore" hidden></button>
 </section>
 <main class="app" id="app" hidden>
   <section class="board" id="board">
@@ -197,6 +210,14 @@ video,.pv{width:100%;max-height:52vh;border-radius:14px;background:#000;object-f
     <div class="range"><label class="lbl" for="th">Line detection (raise it if colors leak through faint lines)</label><input type="range" id="th" min="60" max="235" value="170"></div>
     <button class="btn" id="clear">Clear all colors</button>
     <p class="note" id="newMsg"></p>
+  </div>
+</div>
+
+<div class="sheet" id="delSheet" hidden>
+  <div class="card">
+    <h3><span id="delTitle">Delete this page?</span> <button class="x" data-close aria-label="Close">×</button></h3>
+    <p class="note" style="font-size:16px">This removes the page and its progress from your gallery on this device. You can bring starter pages back later, but your coloring on them will be gone.</p>
+    <div class="dbtns"><button class="btn" data-close>Cancel</button><button class="btn danger" id="delGo">Delete</button></div>
   </div>
 </div>
 
@@ -651,30 +672,47 @@ function showApp(){$('home').hidden=true;$('app').hidden=false;$('homeBtn').hidd
 function showHome(){saveNow();$('app').hidden=true;$('home').hidden=false;$('homeBtn').hidden=true;renderHome();scrollTo(0,0)}
 $('homeBtn').addEventListener('click',()=>{if(location.hash==='#color')location.hash='';else showHome()});
 addEventListener('hashchange',()=>{if(location.hash==='#color'){if(!W||!curKey)location.hash=''}else if(!$('app').hidden)showHome()});
+const trash='<svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg>';
+const readHidden=()=>{try{return JSON.parse(localStorage.getItem('bhues.hidden')||'[]')||[]}catch(e){return []}};
+const isDone=sv=>!!(sv&&sv.tot&&sv.left===0&&sv.ops&&sv.ops.length);
 function card(i,m){
   const sp=samples[i],sv=readKey(keyFor(i,m)),started=sv&&sv.ops&&sv.ops.length,img=started&&sv.thumb?sv.thumb:sp.line;
   let badge='',sub='';
   if(m==='num'){if(started&&sv.tot){badge=sv.left?Math.round((sv.tot-sv.left)/sv.tot*100)+'%':'Done';sub=sv.left?`${sv.left} spaces left`:'Finished'}else{badge='New';sub=`${sp.pal.length} colors`}}
   else{badge=started?'In progress':'';sub=started?`${sv.ops.length} fills so far`:'Your colors'}
-  const dots=m==='num'?`<span class="dots">${sp.pal.map(c=>`<i style="background:${c}"></i>`).join('')}</span>`:'';
-  return `<button class="pcard" data-i="${i}" data-m="${m}"><span class="pimg"><img src="${img}" alt="">${badge?`<em>${badge}</em>`:''}</span><span class="pmeta"><b>${sp.name}</b><small>${sub}</small>${dots}</span></button>`;
+  const dots=m==='num'&&!isDone(sv)?`<span class="dots">${sp.pal.map(c=>`<i style="background:${c}"></i>`).join('')}</span>`:'';
+  return `<div class="pwrap"><button class="pcard" data-i="${i}" data-m="${m}"><span class="pimg"><img src="${img}" alt="">${badge?`<em>${badge}</em>`:''}</span><span class="pmeta"><b>${sp.name}</b><small>${sub}</small>${dots}</span></button><button class="del" data-del="${keyFor(i,m)}" data-name="${sp.name}" aria-label="Delete ${sp.name}">${trash}</button></div>`;
 }
 function renderHome(){
-  $('galNum').innerHTML=samples.map((_,i)=>card(i,'num')).join('');
+  const hid=readHidden(),num=[],fin=[];
+  samples.forEach((_,i)=>{const k=keyFor(i,'num');if(hid.includes(k))return;(isDone(readKey(k))?fin:num).push(card(i,'num'))});
+  $('galNum').innerHTML=num.join('')||'<p class="empty">You have colored every page here. New pages are on the way!</p>';
+  $('galFin').innerHTML=fin.join('');$('finCount').textContent=fin.length;$('finSec').hidden=!fin.length;
   const cu=readKey('bhues.custom');
-  $('galFree').innerHTML=samples.slice(0,FREE_PAGES).map((_,i)=>card(i,'free')).join('')
-    +(cu&&cu.art?`<button class="pcard" data-custom="1"><span class="pimg"><img src="${cu.thumb||cu.art}" alt=""><em>Your upload</em></span><span class="pmeta"><b>My page</b><small>${(cu.ops||[]).length} fills so far</small></span></button>`:'')
+  $('galFree').innerHTML=samples.slice(0,FREE_PAGES).map((_,i)=>hid.includes(keyFor(i,'free'))?'':card(i,'free')).join('')
+    +(cu&&cu.art?`<div class="pwrap"><button class="pcard" data-custom="1"><span class="pimg"><img src="${cu.thumb||cu.art}" alt=""><em>Your upload</em></span><span class="pmeta"><b>My page</b><small>${(cu.ops||[]).length} fills so far</small></span></button><button class="del" data-del="bhues.custom" data-name="My page" aria-label="Delete My page">${trash}</button></div>`:'')
     +`<label class="tile"><svg viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v4h16v-4"/></svg>Upload line art<small>Your own or licensed art</small><input type="file" accept="image/*" id="upLine"></label>`
     +`<label class="tile"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="14" rx="3"/><circle cx="12" cy="13" r="4"/><path d="M8 6l2-3h4l2 3"/></svg>Photo to line art<small>Trace one of your photos</small><input type="file" accept="image/*" id="upPhoto"></label>`;
+  $('restore').hidden=!hid.length;$('restore').textContent=`Bring back deleted pages (${hid.length})`;
   const last=localStorage.getItem('bhues.last'),sv=last?readKey(last):null;let html='';
-  if(sv&&sv.ops&&(sv.ops.length||last==='bhues.custom')){
+  if(sv&&sv.ops&&(sv.ops.length||last==='bhues.custom')&&!isDone(sv)){
     const mm=/^bhues\.p(\d+)\.(num|free)$/.exec(last),name=mm&&samples[+mm[1]]?samples[+mm[1]].name+(mm[2]==='num'?', color by number':', free coloring'):'My page';
     const pct=sv.tot?Math.round((sv.tot-sv.left)/sv.tot*100):null;
     html=`<button class="cont" data-last="${last}"><img src="${sv.thumb||''}" alt=""><span><small>Continue coloring</small><b>${name}</b>${pct!==null?`<small>${pct}% done</small><div class="bar"><i style="width:${pct}%"></i></div>`:`<small>${sv.ops.length} fills so far</small>`}</span><span class="go">Keep going</span></button>`;
   }
   $('cont').innerHTML=html;
 }
+let delKey=null;
+$('delGo').addEventListener('click',()=>{
+  if(!delKey)return;
+  try{localStorage.removeItem(delKey);
+    if(localStorage.getItem('bhues.last')===delKey)localStorage.removeItem('bhues.last');
+    if(delKey!=='bhues.custom'){const h=readHidden();if(!h.includes(delKey))h.push(delKey);localStorage.setItem('bhues.hidden',JSON.stringify(h))}}catch(e){}
+  delKey=null;close($('delSheet'));renderHome();
+});
+$('restore').addEventListener('click',()=>{try{localStorage.removeItem('bhues.hidden')}catch(e){}renderHome()});
 $('home').addEventListener('click',e=>{
+  const d=e.target.closest('[data-del]');if(d){delKey=d.dataset.del;$('delTitle').textContent=`Delete ${d.dataset.name}?`;open('delSheet');return}
   const b=e.target.closest('[data-i],[data-custom],[data-last]');if(!b)return;
   if(b.dataset.last){const mm=/^bhues\.p(\d+)\.(num|free)$/.exec(b.dataset.last);mm?openPage(+mm[1],mm[2]):openCustom();return}
   if(b.dataset.custom){openCustom();return}
